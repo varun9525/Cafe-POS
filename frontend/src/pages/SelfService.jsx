@@ -85,6 +85,7 @@ function SelfService() {
       }
       return [...prev, { ...product, quantity: 1 }];
     });
+    setShowCart(true);
   };
 
   const updateQuantity = (productId, delta) => {
@@ -359,7 +360,9 @@ function SelfService() {
   };
 
   return (
-    <div className="bg-[#f8f9fa] text-[#191c1d] min-h-screen flex flex-col font-sans relative">
+    <div className={`bg-[#f8f9fa] text-[#191c1d] min-h-screen flex flex-col font-sans relative transition-all duration-300 ${
+      showCart ? 'lg:pr-[384px]' : ''
+    }`}>
       <header className="relative w-full h-[320px] min-h-[280px] overflow-hidden shrink-0">
         <div className="absolute inset-0 bg-gradient-to-t from-black/75 to-transparent z-10"></div>
         <img 
@@ -468,7 +471,7 @@ function SelfService() {
         </div>
       </main>
 
-      {cart.length > 0 && (
+      {cart.length > 0 && !showCart && (
         <div className="fixed bottom-6 right-6 z-50">
           <button 
             onClick={() => setShowCart(true)}
@@ -539,7 +542,7 @@ function SelfService() {
       </div>
 
       {showCart && (
-        <div className="fixed inset-0 bg-black/40 z-[55] transition-opacity" onClick={() => setShowCart(false)}></div>
+        <div className="fixed inset-0 bg-black/40 z-[55] transition-opacity lg:hidden" onClick={() => setShowCart(false)}></div>
       )}
 
       {showPaymentModal && (
