@@ -119,14 +119,7 @@ function Login({ onLogin }) {
               <h1 className="text-4xl font-extrabold mb-4 leading-tight">Elevate your service experience.</h1>
               <p className="text-lg text-white/80">Seamlessly manage orders, inventory, and staff with our enterprise-grade point of sale system.</p>
             </div>
-            <div className="flex items-center space-x-6">
-              <div className="flex -space-x-3">
-                <img className="w-10 h-10 rounded-full border-2 border-white object-cover" alt="Barista" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100" />
-                <img className="w-10 h-10 rounded-full border-2 border-white object-cover" alt="Manager" src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100" />
-                <img className="w-10 h-10 rounded-full border-2 border-white object-cover" alt="Customer" src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100" />
-              </div>
-              <p className="text-sm text-white/90">Trusted by 5,000+ cafes worldwide</p>
-            </div>
+
           </div>
         </section>
 
@@ -152,11 +145,7 @@ function Login({ onLogin }) {
                   ? 'Sign up to register a new account.' 
                   : 'Please enter your credentials to access the terminal.'}
               </p>
-              {!isSignup && (
-                <p className="text-sm text-[#714B67] mt-1 font-semibold">
-                  Demo: admin (pass: admin123) | cashier (pass: cashier123)
-                </p>
-              )}
+
             </div>
 
             {signupSuccess && (
