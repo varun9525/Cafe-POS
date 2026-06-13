@@ -20,15 +20,42 @@ const JWT_SECRET = 'odoo_cafe_pos_super_secret_key';
 app.use(cors());
 app.use(express.json());
 
+// --- JWT AUTHENTICATION MIDDLEWARES ---
+const authenticateJWT = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (authHeader) {
+    const token = authHeader.startsWith('Bearer ') ? authHeader.split(' ')[1] : authHeader;
+    jwt.verify(token, JWT_SECRET, (err, user) => {
+      if (err) {
+        return res.status(403).json({ error: 'Forbidden: Invalid or expired token' });
+      }
+      req.user = user;
+      next();
+    });
+  } else {
+    res.status(401).json({ error: 'Unauthorized: Access token missing' });
+  }
+};
+
+const authorizeRoles = (...allowedRoles) => {
+  return (req, res, next) => {
+    if (!req.user || !allowedRoles.includes(req.user.role)) {
+      return res.status(403).json({ error: 'Access denied: insufficient permissions' });
+    }
+    next();
+  };
+};
+
+
 // --- 1. SESSIONS API ---
-app.get('/api/sessions/active', (req, res) => {
+app.get('/api/sessions/active', authenticateJWT, (req, res) => {
   db.get("SELECT * FROM sessions WHERE status = 'open' ORDER BY id DESC LIMIT 1", [], (err, row) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json(row || null);
   });
 });
 
-app.post('/api/sessions/open', (req, res) => {
+app.post('/api/sessions/open', authenticateJWT, authorizeRoles('manager', 'cashier'), (req, res) => {
   const { start_balance } = req.body;
   const opened_at = new Date().toISOString();
   db.run(
@@ -41,7 +68,7 @@ app.post('/api/sessions/open', (req, res) => {
   );
 });
 
-app.post('/api/sessions/close', (req, res) => {
+app.post('/api/sessions/close', authenticateJWT, authorizeRoles('manager', 'cashier'), (req, res) => {
   const { id, end_balance } = req.body;
   const closed_at = new Date().toISOString();
   db.run(
@@ -59,7 +86,7 @@ app.post('/api/sessions/close', (req, res) => {
   );
 });
 
-app.get('/api/sessions/summary/:id', (req, res) => {
+app.get('/api/sessions/summary/:id', authenticateJWT, (req, res) => {
   const sessionId = req.params.id;
   db.get(`SELECT * FROM sessions WHERE id = ?`, [sessionId], (err, session) => {
     if (err) return res.status(500).json({ error: err.message });
@@ -81,7 +108,7 @@ app.get('/api/categories', (req, res) => {
   });
 });
 
-app.post('/api/categories', (req, res) => {
+app.post('/api/categories', authenticateJWT, authorizeRoles('manager'), (req, res) => {
   const { name, color } = req.body;
   db.run(
     `INSERT INTO categories (name, color) VALUES (?, ?)`,
@@ -93,7 +120,7 @@ app.post('/api/categories', (req, res) => {
   );
 });
 
-app.put('/api/categories/:id', (req, res) => {
+app.put('/api/categories/:id', authenticateJWT, authorizeRoles('manager'), (req, res) => {
   const { name, color } = req.body;
   db.run(
     `UPDATE categories SET name = ?, color = ? WHERE id = ?`,
@@ -105,7 +132,7 @@ app.put('/api/categories/:id', (req, res) => {
   );
 });
 
-app.delete('/api/categories/:id', (req, res) => {
+app.delete('/api/categories/:id', authenticateJWT, authorizeRoles('manager'), (req, res) => {
   db.run(`DELETE FROM categories WHERE id = ?`, [req.params.id], function (err) {
     if (err) return res.status(500).json({ error: err.message });
     res.json({ success: true });
@@ -120,7 +147,7 @@ app.get('/api/products', (req, res) => {
   });
 });
 
-app.post('/api/products', (req, res) => {
+app.post('/api/products', authenticateJWT, authorizeRoles('manager'), (req, res) => {
   const { name, price, category, image, description, uom, tax, stock } = req.body;
   db.run(
     `INSERT INTO products (name, price, category, image, description, uom, tax, stock) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -132,7 +159,7 @@ app.post('/api/products', (req, res) => {
   );
 });
 
-app.put('/api/products/:id', (req, res) => {
+app.put('/api/products/:id', authenticateJWT, authorizeRoles('manager'), (req, res) => {
   const { name, price, category, image, description, uom, tax, stock } = req.body;
   db.run(
     `UPDATE products SET name = ?, price = ?, category = ?, image = ?, description = ?, uom = ?, tax = ?, stock = ? WHERE id = ?`,
@@ -144,7 +171,7 @@ app.put('/api/products/:id', (req, res) => {
   );
 });
 
-app.delete('/api/products/:id', (req, res) => {
+app.delete('/api/products/:id', authenticateJWT, authorizeRoles('manager'), (req, res) => {
   db.run(`DELETE FROM products WHERE id = ?`, [req.params.id], function (err) {
     if (err) return res.status(500).json({ error: err.message });
     res.json({ success: true });
@@ -159,7 +186,7 @@ app.get('/api/payment-methods', (req, res) => {
   });
 });
 
-app.put('/api/payment-methods/:id', (req, res) => {
+app.put('/api/payment-methods/:id', authenticateJWT, authorizeRoles('manager'), (req, res) => {
   const { enabled, upi_id } = req.body;
   db.run(
     `UPDATE payment_methods SET enabled = ?, upi_id = ? WHERE id = ?`,
@@ -179,7 +206,7 @@ app.get('/api/tables', (req, res) => {
   });
 });
 
-app.post('/api/tables', (req, res) => {
+app.post('/api/tables', authenticateJWT, authorizeRoles('manager', 'cashier'), (req, res) => {
   const { table_number, seats, floor } = req.body;
   db.run(
     `INSERT INTO tables (table_number, seats, floor, status) VALUES (?, ?, ?, 'Inactive')`,
@@ -191,7 +218,7 @@ app.post('/api/tables', (req, res) => {
   );
 });
 
-app.put('/api/tables/:id', (req, res) => {
+app.put('/api/tables/:id', authenticateJWT, authorizeRoles('manager', 'cashier'), (req, res) => {
   const { table_number, seats, floor, status, active_order_id } = req.body;
   db.run(
     `UPDATE tables SET table_number = ?, seats = ?, floor = ?, status = ?, active_order_id = ? WHERE id = ?`,
@@ -204,14 +231,14 @@ app.put('/api/tables/:id', (req, res) => {
 });
 
 // --- 6. COUPONS & PROMOTIONS API ---
-app.get('/api/coupons', (req, res) => {
+app.get('/api/coupons', authenticateJWT, authorizeRoles('manager'), (req, res) => {
   db.all('SELECT * FROM coupons', [], (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json(rows);
   });
 });
 
-app.post('/api/coupons', (req, res) => {
+app.post('/api/coupons', authenticateJWT, authorizeRoles('manager'), (req, res) => {
   const { code, discount_type, value } = req.body;
   db.run(
     `INSERT INTO coupons (code, discount_type, value, active) VALUES (?, ?, ?, 1)`,
@@ -231,14 +258,14 @@ app.get('/api/coupons/validate/:code', (req, res) => {
   });
 });
 
-app.get('/api/promotions', (req, res) => {
+app.get('/api/promotions', authenticateJWT, authorizeRoles('manager'), (req, res) => {
   db.all('SELECT * FROM promotions', [], (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json(rows);
   });
 });
 
-app.post('/api/promotions', (req, res) => {
+app.post('/api/promotions', authenticateJWT, authorizeRoles('manager'), (req, res) => {
   const { name, type, min_qty, min_amount, discount_type, value, product_id } = req.body;
   db.run(
     `INSERT INTO promotions (name, type, min_qty, min_amount, discount_type, value, product_id, active) VALUES (?, ?, ?, ?, ?, ?, ?, 1)`,
@@ -250,7 +277,7 @@ app.post('/api/promotions', (req, res) => {
   );
 });
 
-app.put('/api/promotions/:id', (req, res) => {
+app.put('/api/promotions/:id', authenticateJWT, authorizeRoles('manager'), (req, res) => {
   const { active } = req.body;
   db.run(
     `UPDATE promotions SET active = ? WHERE id = ?`,
@@ -263,14 +290,14 @@ app.put('/api/promotions/:id', (req, res) => {
 });
 
 // --- 7. CUSTOMERS API ---
-app.get('/api/customers', (req, res) => {
+app.get('/api/customers', authenticateJWT, authorizeRoles('manager', 'cashier'), (req, res) => {
   db.all('SELECT * FROM customers', [], (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json(rows);
   });
 });
 
-app.post('/api/customers', (req, res) => {
+app.post('/api/customers', authenticateJWT, authorizeRoles('manager', 'cashier'), (req, res) => {
   const { name, email, phone } = req.body;
   db.run(
     `INSERT INTO customers (name, email, phone) VALUES (?, ?, ?)`,
@@ -283,14 +310,14 @@ app.post('/api/customers', (req, res) => {
 });
 
 // --- 8. EMPLOYEE / USER MANAGEMENT ---
-app.get('/api/employees', (req, res) => {
+app.get('/api/employees', authenticateJWT, authorizeRoles('manager'), (req, res) => {
   db.all('SELECT id, name, username, role, archived FROM users', [], (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json(rows);
   });
 });
 
-app.post('/api/employees', (req, res) => {
+app.post('/api/employees', authenticateJWT, authorizeRoles('manager'), (req, res) => {
   const { name, username, password, role } = req.body;
   const hashedPassword = bcrypt.hashSync(password, 10);
   db.run(
@@ -303,22 +330,38 @@ app.post('/api/employees', (req, res) => {
   );
 });
 
-app.put('/api/employees/:id', (req, res) => {
+app.put('/api/employees/:id', authenticateJWT, authorizeRoles('manager'), (req, res) => {
   const { password, archived, role } = req.body;
-  if (password) {
-    const hashedPassword = bcrypt.hashSync(password, 10);
-    db.run(`UPDATE users SET password = ? WHERE id = ?`, [hashedPassword, req.params.id]);
-  }
-  if (archived !== undefined) {
-    db.run(`UPDATE users SET archived = ? WHERE id = ?`, [archived ? 1 : 0, req.params.id]);
-  }
-  if (role) {
-    db.run(`UPDATE users SET role = ? WHERE id = ?`, [role, req.params.id]);
-  }
-  res.json({ success: true });
+  
+  db.get('SELECT username FROM users WHERE id = ?', [req.params.id], (err, userRow) => {
+    if (err || !userRow) return res.status(404).json({ error: 'User not found' });
+    const targetUsername = userRow.username;
+
+    db.serialize(() => {
+      if (password) {
+        const hashedPassword = bcrypt.hashSync(password, 10);
+        db.run(`UPDATE users SET password = ? WHERE id = ?`, [hashedPassword, req.params.id]);
+      }
+      if (archived !== undefined) {
+        db.run(`UPDATE users SET archived = ? WHERE id = ?`, [archived ? 1 : 0, req.params.id]);
+      }
+      if (role) {
+        db.run(`UPDATE users SET role = ? WHERE id = ?`, [role, req.params.id]);
+      }
+
+      for (const [sid, s] of activeSockets.entries()) {
+        if (s.user && s.user.username === targetUsername) {
+          s.emit('force_logout', { message: 'Your account status or password has been updated by an administrator.' });
+          s.disconnect(true);
+        }
+      }
+
+      res.json({ success: true });
+    });
+  });
 });
 
-app.delete('/api/employees/:id', (req, res) => {
+app.delete('/api/employees/:id', authenticateJWT, authorizeRoles('manager'), (req, res) => {
   db.run(`DELETE FROM users WHERE id = ?`, [req.params.id], function (err) {
     if (err) return res.status(500).json({ error: err.message });
     res.json({ success: true });
@@ -399,7 +442,7 @@ app.post('/api/orders', (req, res) => {
 });
 
 // Update Order status / Edit Order
-app.put('/api/orders/:id', (req, res) => {
+app.put('/api/orders/:id', authenticateJWT, authorizeRoles('manager', 'cashier'), (req, res) => {
   const { status, items, subtotal, tax, discount_amount, total, payment_method } = req.body;
   const id = req.params.id;
 
@@ -464,7 +507,7 @@ app.put('/api/orders/:id', (req, res) => {
 });
 
 // Send order to Kitchen Display System (sets order status to 'Draft-Kitchen' or 'Kitchen')
-app.post('/api/orders/:id/kitchen', (req, res) => {
+app.post('/api/orders/:id/kitchen', authenticateJWT, authorizeRoles('manager', 'cashier'), (req, res) => {
   const { id } = req.params;
   db.run(`UPDATE orders SET status = 'To Cook' WHERE id = ?`, [id], function (err) {
     if (err) return res.status(500).json({ error: err.message });
@@ -492,7 +535,7 @@ app.put('/api/orders/:id/kitchen-stage', (req, res) => {
 });
 
 // Get dashboard statistics
-app.get('/api/dashboard/stats', (req, res) => {
+app.get('/api/dashboard/stats', authenticateJWT, authorizeRoles('manager'), (req, res) => {
   const today = new Date().toISOString().split('T')[0];
   db.all(`SELECT * FROM orders WHERE status = 'Paid' AND created_at LIKE ?`, [`${today}%`], (err, ordersRows) => {
     if (err) return res.status(500).json({ error: err.message });
@@ -535,7 +578,7 @@ app.post('/api/orders/:id/email-receipt', (req, res) => {
 });
 
 // --- 10. REPORTING & ANALYTICS ---
-app.post('/api/reports/dashboard', (req, res) => {
+app.post('/api/reports/dashboard', authenticateJWT, authorizeRoles('manager'), (req, res) => {
   const { period, employeeId, sessionId, productId } = req.body;
   
   let dateFilter = '';
@@ -608,17 +651,18 @@ app.post('/api/reports/dashboard', (req, res) => {
 
 // --- JWT AUTH LOGIN & SIGNUP ---
 app.post('/api/auth/signup', (req, res) => {
-  const { name, email, password } = req.body;
+  const { name, email, password, role } = req.body;
   if (!name || !email || !password) {
     return res.status(400).json({ error: 'Name, email and password required' });
   }
 
   const hashedPassword = bcrypt.hashSync(password, 10);
   const username = email.split('@')[0];
+  const userRole = role || 'customer';
 
   db.run(
-    `INSERT INTO users (name, username, password, role, archived) VALUES (?, ?, ?, 'manager', 0)`,
-    [name, username, hashedPassword],
+    `INSERT INTO users (name, username, password, role, archived) VALUES (?, ?, ?, ?, 0)`,
+    [name, username, hashedPassword, userRole],
     function (err) {
       if (err) return res.status(400).json({ error: 'Email already registered' });
       res.status(201).json({ success: true });
@@ -643,10 +687,31 @@ app.post('/api/auth/login', (req, res) => {
 });
 
 // Socket.io Connection
+const activeSockets = new Map();
+
+io.use((socket, next) => {
+  const token = socket.handshake.auth?.token || socket.handshake.headers['authorization'];
+  if (!token) {
+    socket.user = { role: 'guest', username: 'anonymous' };
+    return next();
+  }
+  const cleanToken = token.startsWith('Bearer ') ? token.slice(7) : token;
+  jwt.verify(cleanToken, JWT_SECRET, (err, decoded) => {
+    if (err) {
+      return next(new Error('Authentication error: Invalid or expired token'));
+    }
+    socket.user = decoded;
+    next();
+  });
+});
+
 io.on('connection', (socket) => {
-  console.log('KDS / POS connection active:', socket.id);
+  console.log(`KDS / POS connection active (${socket.user?.role}):`, socket.id);
+  activeSockets.set(socket.id, socket);
+  
   socket.on('disconnect', () => {
     console.log('Connection closed:', socket.id);
+    activeSockets.delete(socket.id);
   });
 });
 

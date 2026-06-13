@@ -3,3 +3,5 @@ dist/
 backend/pos.db
 .env
 .DS_Store
+.vite/
+

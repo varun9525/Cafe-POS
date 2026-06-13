@@ -29,6 +29,23 @@ import {
   BookOpen
 } from 'lucide-react';
 
+const apiFetch = async (url, options = {}) => {
+  const saved = localStorage.getItem('user');
+  let token = null;
+  if (saved) {
+    try {
+      token = JSON.parse(saved).token;
+    } catch (e) {}
+  }
+  
+  const headers = {
+    ...options.headers,
+    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+  };
+  
+  return fetch(url, { ...options, headers });
+};
+
 function CashierTerminal({ user, onLogout }) {
   // Session State
   const [activeSession, setActiveSession] = useState(null);
@@ -86,7 +103,7 @@ function CashierTerminal({ user, onLogout }) {
   // Fetch active session
   const checkActiveSession = async () => {
     try {
-      const res = await fetch('/api/sessions/active');
+      const res = await apiFetch('/api/sessions/active');
       const data = await res.json();
       if (data) {
         setActiveSession(data);
@@ -103,7 +120,7 @@ function CashierTerminal({ user, onLogout }) {
 
   const fetchSessionSummary = async (sessionId) => {
     try {
-      const res = await fetch(`/api/sessions/summary/${sessionId}`);
+      const res = await apiFetch(`/api/sessions/summary/${sessionId}`);
       if (res.ok) {
         const data = await res.json();
         setSessionSummary(data);
@@ -120,7 +137,7 @@ function CashierTerminal({ user, onLogout }) {
       return;
     }
     try {
-      const res = await fetch('/api/sessions/open', {
+      const res = await apiFetch('/api/sessions/open', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ start_balance: parseFloat(startBalance) })
@@ -145,7 +162,7 @@ function CashierTerminal({ user, onLogout }) {
       return;
     }
     try {
-      const res = await fetch('/api/sessions/close', {
+      const res = await apiFetch('/api/sessions/close', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: activeSession.id, end_balance: parseFloat(endBalance) })
@@ -165,28 +182,28 @@ function CashierTerminal({ user, onLogout }) {
   // Load essential POS metadata
   const loadPOSData = async () => {
     try {
-      const prodRes = await fetch('/api/products');
+      const prodRes = await apiFetch('/api/products');
       const prodData = await prodRes.json();
       setProducts(prodData);
       setFilteredProducts(prodData);
 
-      const catRes = await fetch('/api/categories');
+      const catRes = await apiFetch('/api/categories');
       const catData = await catRes.json();
       setCategories(catData);
 
-      const tableRes = await fetch('/api/tables');
+      const tableRes = await apiFetch('/api/tables');
       const tableData = await tableRes.json();
       setTables(tableData);
 
-      const custRes = await fetch('/api/customers');
+      const custRes = await apiFetch('/api/customers');
       const custData = await custRes.json();
       setCustomers(custData);
 
-      const promoRes = await fetch('/api/promotions');
+      const promoRes = await apiFetch('/api/promotions');
       const promoData = await promoRes.json();
       setPromotions(promoData.filter(p => p.active === 1));
 
-      const payRes = await fetch('/api/payment-methods');
+      const payRes = await apiFetch('/api/payment-methods');
       const payData = await payRes.json();
       setPaymentMethods(payData.filter(p => p.enabled === 1));
     } catch (err) {
@@ -199,7 +216,7 @@ function CashierTerminal({ user, onLogout }) {
     loadPOSData();
 
     // Setup Socket
-    const newSocket = io();
+    const newSocket = io({ auth: { token: user?.token } });
     setSocket(newSocket);
 
     newSocket.on('inventory_alert', (alert) => {
@@ -208,6 +225,11 @@ function CashierTerminal({ user, onLogout }) {
         return [...prev, alert];
       });
       loadPOSData(); // Reload stock
+    });
+
+    newSocket.on('force_logout', (data) => {
+      alert(data.message || 'You have been logged out.');
+      onLogout();
     });
 
     return () => {
@@ -360,7 +382,7 @@ function CashierTerminal({ user, onLogout }) {
     if (!couponCode.trim()) return;
     setCouponError('');
     try {
-      const res = await fetch(`/api/coupons/validate/${couponCode.trim()}`);
+      const res = await apiFetch(`/api/coupons/validate/${couponCode.trim()}`);
       if (res.ok) {
         const coupon = await res.json();
         setAppliedCoupon(coupon);
@@ -392,7 +414,7 @@ function CashierTerminal({ user, onLogout }) {
 
     if (table.active_order_id) {
       try {
-        const res = await fetch('/api/orders');
+        const res = await apiFetch('/api/orders');
         if (res.ok) {
           const ordersList = await res.json();
           const activeOrder = ordersList.find(o => o.id === table.active_order_id);
@@ -448,7 +470,7 @@ function CashierTerminal({ user, onLogout }) {
       let orderId = activeOrderId;
       
       if (!orderId) {
-        const orderRes = await fetch('/api/orders', {
+        const orderRes = await apiFetch('/api/orders', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -472,7 +494,7 @@ function CashierTerminal({ user, onLogout }) {
         orderId = newOrder.id;
         setActiveOrderId(orderId);
       } else {
-        const updateRes = await fetch(`/api/orders/${orderId}`, {
+        const updateRes = await apiFetch(`/api/orders/${orderId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -491,7 +513,7 @@ function CashierTerminal({ user, onLogout }) {
         if (!updateRes.ok) throw new Error('Could not update draft order');
       }
 
-      const kitRes = await fetch(`/api/orders/${orderId}/kitchen`, { method: 'POST' });
+      const kitRes = await apiFetch(`/api/orders/${orderId}/kitchen`, { method: 'POST' });
       if (kitRes.ok) {
         alert('Order successfully sent to kitchen!');
         loadPOSData(); 
@@ -525,13 +547,13 @@ function CashierTerminal({ user, onLogout }) {
 
       let res;
       if (activeOrderId) {
-        res = await fetch(`/api/orders/${activeOrderId}`, {
+        res = await apiFetch(`/api/orders/${activeOrderId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
       } else {
-        res = await fetch('/api/orders', {
+        res = await apiFetch('/api/orders', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
@@ -560,7 +582,7 @@ function CashierTerminal({ user, onLogout }) {
       return;
     }
     try {
-      const res = await fetch('/api/customers', {
+      const res = await apiFetch('/api/customers', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -828,13 +850,13 @@ function CashierTerminal({ user, onLogout }) {
 
       let res;
       if (activeOrderId) {
-        res = await fetch(`/api/orders/${activeOrderId}`, {
+        res = await apiFetch(`/api/orders/${activeOrderId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
       } else {
-        res = await fetch('/api/orders', {
+        res = await apiFetch('/api/orders', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
@@ -859,7 +881,7 @@ function CashierTerminal({ user, onLogout }) {
     if (!emailInput) return;
     try {
       const orderId = createdOrderDetails ? createdOrderDetails.id : (activeOrderId || 1);
-      const res = await fetch(`/api/orders/${orderId}/email-receipt`, {
+      const res = await apiFetch(`/api/orders/${orderId}/email-receipt`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: emailInput })

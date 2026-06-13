@@ -29,6 +29,23 @@ import {
   QrCode
 } from 'lucide-react';
 
+const apiFetch = async (url, options = {}) => {
+  const saved = localStorage.getItem('user');
+  let token = null;
+  if (saved) {
+    try {
+      token = JSON.parse(saved).token;
+    } catch (e) {}
+  }
+  
+  const headers = {
+    ...options.headers,
+    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+  };
+  
+  return fetch(url, { ...options, headers });
+};
+
 function AdminDashboard({ user, onLogout }) {
   const [activeTab, setActiveTab] = useState('overview'); 
   const [stats, setStats] = useState({
@@ -95,37 +112,37 @@ function AdminDashboard({ user, onLogout }) {
 
   const fetchDashboardData = async () => {
     try {
-      const statsRes = await fetch('/api/dashboard/stats');
+      const statsRes = await apiFetch('/api/dashboard/stats');
       if (statsRes.ok) {
         const statsData = await statsRes.json();
         setStats(statsData);
       }
 
-      const ordersRes = await fetch('/api/orders');
+      const ordersRes = await apiFetch('/api/orders');
       if (ordersRes.ok) {
         const ordersData = await ordersRes.json();
         setOrders(ordersData);
       }
 
-      const prodRes = await fetch('/api/products');
+      const prodRes = await apiFetch('/api/products');
       if (prodRes.ok) setProducts(await prodRes.json());
 
-      const catRes = await fetch('/api/categories');
+      const catRes = await apiFetch('/api/categories');
       if (catRes.ok) setCategories(await catRes.json());
 
-      const tableRes = await fetch('/api/tables');
+      const tableRes = await apiFetch('/api/tables');
       if (tableRes.ok) setTables(await tableRes.json());
 
-      const coupRes = await fetch('/api/coupons');
+      const coupRes = await apiFetch('/api/coupons');
       if (coupRes.ok) setCoupons(await coupRes.json());
 
-      const promoRes = await fetch('/api/promotions');
+      const promoRes = await apiFetch('/api/promotions');
       if (promoRes.ok) setPromotions(await promoRes.json());
 
-      const payRes = await fetch('/api/payment-methods');
+      const payRes = await apiFetch('/api/payment-methods');
       if (payRes.ok) setPaymentMethods(await payRes.json());
 
-      const empRes = await fetch('/api/employees');
+      const empRes = await apiFetch('/api/employees');
       if (empRes.ok) setEmployees(await empRes.json());
 
     } catch (err) {
@@ -137,10 +154,14 @@ function AdminDashboard({ user, onLogout }) {
     fetchDashboardData();
     generateCustomReport('Today');
 
-    const socket = io();
+    const socket = io({ auth: { token: user?.token } });
     socket.on('new_order', () => fetchDashboardData());
     socket.on('order_updated', () => fetchDashboardData());
     socket.on('inventory_alert', () => fetchDashboardData());
+    socket.on('force_logout', (data) => {
+      alert(data.message || 'You have been logged out.');
+      onLogout();
+    });
 
     return () => {
       socket.disconnect();
@@ -149,7 +170,7 @@ function AdminDashboard({ user, onLogout }) {
 
   const markAsPaid = async (orderId) => {
     try {
-      const res = await fetch(`/api/orders/${orderId}`, {
+      const res = await apiFetch(`/api/orders/${orderId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'Paid' })
@@ -177,13 +198,13 @@ function AdminDashboard({ user, onLogout }) {
     try {
       let res;
       if (editingProduct) {
-        res = await fetch(`/api/products/${editingProduct.id}`, {
+        res = await apiFetch(`/api/products/${editingProduct.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
       } else {
-        res = await fetch('/api/products', {
+        res = await apiFetch('/api/products', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
@@ -221,7 +242,7 @@ function AdminDashboard({ user, onLogout }) {
   const deleteProduct = async (id) => {
     if (!confirm('Are you sure you want to delete this product?')) return;
     try {
-      const res = await fetch(`/api/products/${id}`, { method: 'DELETE' });
+      const res = await apiFetch(`/api/products/${id}`, { method: 'DELETE' });
       if (res.ok) {
         fetchDashboardData();
       } else {
@@ -251,13 +272,13 @@ function AdminDashboard({ user, onLogout }) {
     try {
       let res;
       if (editingCategory) {
-        res = await fetch(`/api/categories/${editingCategory.id}`, {
+        res = await apiFetch(`/api/categories/${editingCategory.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name: catName, color: catColor })
         });
       } else {
-        res = await fetch('/api/categories', {
+        res = await apiFetch('/api/categories', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name: catName, color: catColor })
@@ -285,7 +306,7 @@ function AdminDashboard({ user, onLogout }) {
   const deleteCategory = async (id) => {
     if (!confirm('Delete this category?')) return;
     try {
-      const res = await fetch(`/api/categories/${id}`, { method: 'DELETE' });
+      const res = await apiFetch(`/api/categories/${id}`, { method: 'DELETE' });
       if (res.ok) fetchDashboardData();
     } catch (err) {
       console.error(err);
@@ -303,13 +324,13 @@ function AdminDashboard({ user, onLogout }) {
     try {
       let res;
       if (editingTable) {
-        res = await fetch(`/api/tables/${editingTable.id}`, {
+        res = await apiFetch(`/api/tables/${editingTable.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
       } else {
-        res = await fetch('/api/tables', {
+        res = await apiFetch('/api/tables', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
@@ -332,7 +353,7 @@ function AdminDashboard({ user, onLogout }) {
   const handleCouponSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch('/api/coupons', {
+      const res = await apiFetch('/api/coupons', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -355,7 +376,7 @@ function AdminDashboard({ user, onLogout }) {
   const handlePromoSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch('/api/promotions', {
+      const res = await apiFetch('/api/promotions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -384,7 +405,7 @@ function AdminDashboard({ user, onLogout }) {
 
   const togglePromoStatus = async (promo) => {
     try {
-      const res = await fetch(`/api/promotions/${promo.id}`, {
+      const res = await apiFetch(`/api/promotions/${promo.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ active: promo.active === 1 ? 0 : 1 })
@@ -398,7 +419,7 @@ function AdminDashboard({ user, onLogout }) {
   // ------------------ PAYMENT OPTIONS TOGGLE ------------------
   const togglePaymentMethod = async (method) => {
     try {
-      const res = await fetch(`/api/payment-methods/${method.id}`, {
+      const res = await apiFetch(`/api/payment-methods/${method.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ enabled: method.enabled === 1 ? 0 : 1, upi_id: method.upi_id })
@@ -411,7 +432,7 @@ function AdminDashboard({ user, onLogout }) {
 
   const updateUPI = async (method, newUpi) => {
     try {
-      await fetch(`/api/payment-methods/${method.id}`, {
+      await apiFetch(`/api/payment-methods/${method.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ enabled: method.enabled, upi_id: newUpi })
@@ -426,7 +447,7 @@ function AdminDashboard({ user, onLogout }) {
   const handleEmployeeSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch('/api/employees', {
+      const res = await apiFetch('/api/employees', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -451,7 +472,7 @@ function AdminDashboard({ user, onLogout }) {
   const deleteEmployee = async (id) => {
     if (!confirm('Archive this barista account?')) return;
     try {
-      const res = await fetch(`/api/employees/${id}`, {
+      const res = await apiFetch(`/api/employees/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ archived: true })
@@ -467,7 +488,7 @@ function AdminDashboard({ user, onLogout }) {
     setReportPeriod(period);
     setLoadingReport(true);
     try {
-      const res = await fetch('/api/reports/dashboard', {
+      const res = await apiFetch('/api/reports/dashboard', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ period })
