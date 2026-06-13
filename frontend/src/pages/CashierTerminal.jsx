@@ -414,10 +414,9 @@ function CashierTerminal({ user, onLogout }) {
 
     if (table.active_order_id) {
       try {
-        const res = await apiFetch('/api/orders');
+        const res = await apiFetch(`/api/orders/${table.active_order_id}`);
         if (res.ok) {
-          const ordersList = await res.json();
-          const activeOrder = ordersList.find(o => o.id === table.active_order_id);
+          const activeOrder = await res.json();
           if (activeOrder) {
             setActiveOrderId(activeOrder.id);
             setNote(activeOrder.note || '');
