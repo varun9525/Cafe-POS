@@ -5,6 +5,7 @@ import cors from 'cors';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import db from './database.js';
+import { rateLimit } from 'express-rate-limit';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -724,8 +725,16 @@ app.post('/api/reports/dashboard', authenticateJWT, authorizeRoles('manager'), (
   });
 });
 
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  limit: 10, // Limit each IP to 10 requests per window
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: { error: 'Too many attempts, please try again after 15 minutes.' }
+});
+
 // --- JWT AUTH LOGIN & SIGNUP ---
-app.post('/api/auth/signup', (req, res) => {
+app.post('/api/auth/signup', authLimiter, (req, res) => {
   const { name, email, password, role } = req.body;
   if (!name || !email || !password) {
     return res.status(400).json({ error: 'Name, email and password required' });
@@ -745,7 +754,7 @@ app.post('/api/auth/signup', (req, res) => {
   );
 });
 
-app.post('/api/auth/login', (req, res) => {
+app.post('/api/auth/login', authLimiter, (req, res) => {
   const { username, password, role } = req.body;
   // Support email or username
   db.get('SELECT * FROM users WHERE username = ? OR username = ?', [username, username.split('@')[0]], (err, user) => {
