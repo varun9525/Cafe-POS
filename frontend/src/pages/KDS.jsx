@@ -13,6 +13,23 @@ import {
   Filter 
 } from 'lucide-react';
 
+const apiFetch = async (url, options = {}) => {
+  const saved = localStorage.getItem('user');
+  let token = null;
+  if (saved) {
+    try {
+      token = JSON.parse(saved).token;
+    } catch (e) {}
+  }
+  
+  const headers = {
+    ...options.headers,
+    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+  };
+  
+  return fetch(url, { ...options, headers });
+};
+
 function KDS() {
   const [orders, setOrders] = useState([]);
   const [activeFilter, setActiveFilter] = useState('All');
@@ -54,7 +71,7 @@ function KDS() {
 
   const fetchKDSOrders = async () => {
     try {
-      const res = await fetch('/api/orders');
+      const res = await apiFetch('/api/orders');
       if (res.ok) {
         const data = await res.json();
         const kitchenOrders = data.filter(order => 
@@ -97,7 +114,7 @@ function KDS() {
 
   const updateStage = async (orderId, newStage) => {
     try {
-      const res = await fetch(`/api/orders/${orderId}/kitchen-stage`, {
+      const res = await apiFetch(`/api/orders/${orderId}/kitchen-stage`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
