@@ -408,11 +408,35 @@ app.delete('/api/employees/:id', authenticateJWT, authorizeRoles('manager'), (re
 
 // --- 9. POS ORDERS & KITCHEN SYSTEM ---
 
-// Get all orders (including draft and KDS active orders)
 app.get('/api/orders', (req, res) => {
-  db.all('SELECT * FROM orders ORDER BY id DESC', [], (err, rows) => {
+  const limit = req.query.limit ? parseInt(req.query.limit) : 50;
+  const offset = req.query.offset ? parseInt(req.query.offset) : 0;
+  db.all('SELECT * FROM orders ORDER BY id DESC LIMIT ? OFFSET ?', [limit, offset], (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
     const formatted = rows.map(r => ({ ...r, items: JSON.parse(r.items) }));
+    res.json(formatted);
+  });
+});
+
+// Get active kitchen orders
+app.get('/api/orders/kitchen', (req, res) => {
+  db.all(
+    "SELECT * FROM orders WHERE status IN ('To Cook', 'Preparing', 'Completed') ORDER BY id DESC",
+    [],
+    (err, rows) => {
+      if (err) return res.status(500).json({ error: err.message });
+      const formatted = rows.map(r => ({ ...r, items: JSON.parse(r.items) }));
+      res.json(formatted);
+    }
+  );
+});
+
+// Get a single order by ID
+app.get('/api/orders/:id', (req, res) => {
+  db.get('SELECT * FROM orders WHERE id = ?', [req.params.id], (err, row) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (!row) return res.status(404).json({ error: 'Order not found' });
+    const formatted = { ...row, items: JSON.parse(row.items) };
     res.json(formatted);
   });
 });

@@ -154,6 +154,12 @@ function initializeDatabase() {
       )
     `);
 
+    // --- DATABASE INDEXES ---
+    db.run("CREATE INDEX IF NOT EXISTS idx_orders_created_at ON orders(created_at)");
+    db.run("CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status)");
+    db.run("CREATE INDEX IF NOT EXISTS idx_orders_session_id ON orders(session_id)");
+    db.run("CREATE INDEX IF NOT EXISTS idx_products_category ON products(category)");
+
     // --- DATABASE SCHEMA MIGRATIONS (Self-Healing) ---
     db.run("ALTER TABLE products ADD COLUMN uom TEXT DEFAULT 'pcs'", (err) => {
       if (err && !err.message.includes('duplicate column name')) {

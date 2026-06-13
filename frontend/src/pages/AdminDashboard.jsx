@@ -127,7 +127,7 @@ function AdminDashboard({ user, onLogout }) {
         setStats(statsData);
       }
 
-      const ordersRes = await apiFetch('/api/orders');
+      const ordersRes = await apiFetch('/api/orders?limit=50');
       if (ordersRes.ok) {
         const ordersData = await ordersRes.json();
         setOrders(ordersData);

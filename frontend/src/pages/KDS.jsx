@@ -71,13 +71,10 @@ function KDS() {
 
   const fetchKDSOrders = async () => {
     try {
-      const res = await apiFetch('/api/orders');
+      const res = await apiFetch('/api/orders/kitchen');
       if (res.ok) {
         const data = await res.json();
-        const kitchenOrders = data.filter(order => 
-          ['To Cook', 'Preparing', 'Completed'].includes(order.status)
-        );
-        setOrders(kitchenOrders);
+        setOrders(data);
       }
     } catch (err) {
       console.error('Error fetching KDS orders:', err);
