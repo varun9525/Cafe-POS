@@ -444,28 +444,30 @@ app.get('/api/orders/:id', (req, res) => {
 
 // Create/Draft Order
 app.post('/api/orders', (req, res) => {
-  const { session_id, table_id, customer_id, items, subtotal, tax, discount_amount, total, status, payment_method } = req.body;
+  const { session_id, table_id, customer_id, items, subtotal, tax, discount_amount, total, status, payment_method, payment_status } = req.body;
   const itemsJson = JSON.stringify(items);
   const createdAt = new Date().toISOString();
+  const payStatus = payment_status || (status === 'Paid' ? 'Paid' : 'Pending');
 
   db.serialize(() => {
     db.run(
-      `INSERT INTO orders (session_id, table_id, customer_id, items, subtotal, tax, discount_amount, total, status, payment_method, created_at) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [session_id || 1, table_id, customer_id, itemsJson, subtotal, tax, discount_amount || 0.0, total, status || 'Draft', payment_method, createdAt],
+      `INSERT INTO orders (session_id, table_id, customer_id, items, subtotal, tax, discount_amount, total, status, payment_method, payment_status, created_at) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [session_id || 1, table_id, customer_id, itemsJson, subtotal, tax, discount_amount || 0.0, total, status || 'Draft', payment_method, payStatus, createdAt],
       function (err) {
         if (err) return res.status(500).json({ error: err.message });
         const newOrderId = this.lastID;
 
         // If table is linked, update table status
         if (table_id) {
-          const tableStatus = status === 'Paid' ? 'Inactive' : 'Active';
-          const linkedOrderId = status === 'Paid' ? null : newOrderId;
+          const isSettled = (status === 'Paid' || payStatus === 'Paid');
+          const tableStatus = isSettled ? 'Inactive' : 'Active';
+          const linkedOrderId = isSettled ? null : newOrderId;
           db.run(`UPDATE tables SET status = ?, active_order_id = ? WHERE id = ?`, [tableStatus, linkedOrderId, table_id]);
         }
 
         // Decrement stock if Paid
-        if (status === 'Paid') {
+        if (status === 'Paid' || payStatus === 'Paid') {
           items.forEach((item) => {
             db.run(
               `UPDATE products SET stock = MAX(0, stock - ?) WHERE name = ?`,
@@ -494,6 +496,7 @@ app.post('/api/orders', (req, res) => {
           total,
           status: status || 'Draft',
           payment_method,
+          payment_status: payStatus,
           created_at: createdAt
         };
 
@@ -506,54 +509,61 @@ app.post('/api/orders', (req, res) => {
 
 // Update Order status / Edit Order
 app.put('/api/orders/:id', authenticateJWT, authorizeRoles('manager', 'cashier'), (req, res) => {
-  const { status, items, subtotal, tax, discount_amount, total, payment_method } = req.body;
+  const { status, items, subtotal, tax, discount_amount, total, payment_method, payment_status } = req.body;
   const id = req.params.id;
 
   if (items) {
     const itemsJson = JSON.stringify(items);
+    const payStatus = payment_status || (status === 'Paid' ? 'Paid' : 'Pending');
     db.run(
-      `UPDATE orders SET items = ?, subtotal = ?, tax = ?, discount_amount = ?, total = ?, status = ?, payment_method = ? WHERE id = ?`,
-      [itemsJson, subtotal, tax, discount_amount, total, status, payment_method, id],
+      `UPDATE orders SET items = ?, subtotal = ?, tax = ?, discount_amount = ?, total = ?, status = ?, payment_method = ?, payment_status = ? WHERE id = ?`,
+      [itemsJson, subtotal, tax, discount_amount, total, status, payment_method, payStatus, id],
       function (err) {
         if (err) return res.status(500).json({ error: err.message });
         
         // Sync table status
-        db.get(`SELECT table_id FROM orders WHERE id = ?`, [id], (err, order) => {
+        db.get(`SELECT table_id, payment_status, status FROM orders WHERE id = ?`, [id], (err, order) => {
           if (order && order.table_id) {
-            const tableStatus = status === 'Paid' ? 'Inactive' : 'Active';
-            const linkedOrderId = status === 'Paid' ? null : id;
+            const isSettled = (order.status === 'Paid' || order.payment_status === 'Paid');
+            const tableStatus = isSettled ? 'Inactive' : 'Active';
+            const linkedOrderId = isSettled ? null : id;
             db.run(`UPDATE tables SET status = ?, active_order_id = ? WHERE id = ?`, [tableStatus, linkedOrderId, order.table_id]);
           }
         });
 
         // Decrement stock if Paid
-        if (status === 'Paid') {
+        if (status === 'Paid' || payStatus === 'Paid') {
           items.forEach((item) => {
             db.run(`UPDATE products SET stock = MAX(0, stock - ?) WHERE name = ?`, [item.quantity, item.name]);
           });
         }
 
-        io.emit('order_updated', { id: parseInt(id), status });
+        io.emit('order_updated', { id: parseInt(id), status, payment_status: payStatus });
         res.json({ success: true });
       }
     );
   } else {
     // Basic status update (e.g. KDS/Payment confirmation)
+    const payStatus = payment_status || (status === 'Paid' ? 'Paid' : null);
     db.run(
-      `UPDATE orders SET status = ? WHERE id = ?`,
-      [status, id],
+      `UPDATE orders SET 
+         status = CASE WHEN ? IS NOT NULL THEN ? ELSE status END,
+         payment_status = CASE WHEN ? IS NOT NULL THEN ? ELSE payment_status END
+       WHERE id = ?`,
+      [status || null, status || null, payStatus || null, payStatus || null, id],
       function (err) {
         if (err) return res.status(500).json({ error: err.message });
         
         // Sync table status
-        db.get(`SELECT table_id, items FROM orders WHERE id = ?`, [id], (err, order) => {
+        db.get(`SELECT table_id, items, status, payment_status FROM orders WHERE id = ?`, [id], (err, order) => {
           if (order) {
             if (order.table_id) {
-              const tableStatus = status === 'Paid' ? 'Inactive' : 'Active';
-              const linkedOrderId = status === 'Paid' ? null : id;
+              const isSettled = (order.status === 'Paid' || order.payment_status === 'Paid');
+              const tableStatus = isSettled ? 'Inactive' : 'Active';
+              const linkedOrderId = isSettled ? null : id;
               db.run(`UPDATE tables SET status = ?, active_order_id = ? WHERE id = ?`, [tableStatus, linkedOrderId, order.table_id]);
             }
-            if (status === 'Paid' && order.items) {
+            if ((status === 'Paid' || payStatus === 'Paid') && order.items) {
               const parsedItems = JSON.parse(order.items);
               parsedItems.forEach((item) => {
                 db.run(`UPDATE products SET stock = MAX(0, stock - ?) WHERE name = ?`, [item.quantity, item.name]);
@@ -562,7 +572,7 @@ app.put('/api/orders/:id', authenticateJWT, authorizeRoles('manager', 'cashier')
           }
         });
 
-        io.emit('order_updated', { id: parseInt(id), status });
+        io.emit('order_updated', { id: parseInt(id), status, payment_status: payStatus });
         res.json({ success: true });
       }
     );
@@ -615,7 +625,7 @@ app.get('/api/dashboard/stats', authenticateJWT, authorizeRoles('manager'), (req
   db.all(
     `SELECT substr(created_at, 1, 10) as order_date, SUM(total) as daily_total 
      FROM orders 
-     WHERE status = 'Paid' AND created_at >= ? 
+     WHERE payment_status = 'Paid' AND created_at >= ? 
      GROUP BY order_date`,
     [mondayStr],
     (err, weeklyRows) => {
@@ -633,7 +643,7 @@ app.get('/api/dashboard/stats', authenticateJWT, authorizeRoles('manager'), (req
         };
       });
 
-      db.all(`SELECT * FROM orders WHERE status = 'Paid' AND created_at LIKE ?`, [`${today}%`], (err, ordersRows) => {
+      db.all(`SELECT * FROM orders WHERE payment_status = 'Paid' AND created_at LIKE ?`, [`${today}%`], (err, ordersRows) => {
         if (err) return res.status(500).json({ error: err.message });
         const todaySales = ordersRows.reduce((sum, o) => sum + o.total, 0.0);
         const ordersToday = ordersRows.length;
@@ -702,7 +712,7 @@ app.post('/api/reports/dashboard', authenticateJWT, authorizeRoles('manager'), (
 
   const query = `
     SELECT * FROM orders 
-    WHERE status = 'Paid' AND ${dateFilter} ${employeeFilter}
+    WHERE payment_status = 'Paid' AND ${dateFilter} ${employeeFilter}
   `;
 
   db.all(query, queryParams, (err, rows) => {

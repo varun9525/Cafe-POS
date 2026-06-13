@@ -150,6 +150,7 @@ function initializeDatabase() {
         total REAL NOT NULL,
         status TEXT NOT NULL, -- 'Draft', 'Paid', 'Cancelled'
         payment_method TEXT,
+        payment_status TEXT DEFAULT 'Pending',
         created_at TEXT NOT NULL
       )
     `);
@@ -189,6 +190,11 @@ function initializeDatabase() {
     db.run("ALTER TABLE sessions ADD COLUMN status TEXT DEFAULT 'closed'", (err) => {
       if (err && !err.message.includes('duplicate column name')) {
         console.error('Migration error sessions.status:', err.message);
+      }
+    });
+    db.run("ALTER TABLE orders ADD COLUMN payment_status TEXT DEFAULT 'Pending'", (err) => {
+      if (err && !err.message.includes('duplicate column name')) {
+        console.error('Migration error orders.payment_status:', err.message);
       }
     });
 

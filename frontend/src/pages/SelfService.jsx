@@ -158,7 +158,8 @@ function SelfService() {
           subtotal,
           tax,
           total,
-          status: 'Paid',
+          status: 'To Cook',
+          payment_status: 'Paid',
           payment_method: paymentMethod
         }),
       });

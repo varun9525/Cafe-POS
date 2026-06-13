@@ -64,6 +64,7 @@ function CashierTerminal({ user, onLogout }) {
   
   const [cart, setCart] = useState([]);
   const [activeOrderId, setActiveOrderId] = useState(null);
+  const [activeOrderStatus, setActiveOrderStatus] = useState(null);
   const [selectedTable, setSelectedTable] = useState(null); // Table object
   const [tables, setTables] = useState([]);
   const [showTableModal, setShowTableModal] = useState(false);
@@ -419,6 +420,7 @@ function CashierTerminal({ user, onLogout }) {
           const activeOrder = await res.json();
           if (activeOrder) {
             setActiveOrderId(activeOrder.id);
+            setActiveOrderStatus(activeOrder.status);
             setNote(activeOrder.note || '');
             
             const mappedCart = activeOrder.items.map(item => {
@@ -456,6 +458,7 @@ function CashierTerminal({ user, onLogout }) {
   const releaseTable = () => {
     setSelectedTable(null);
     setActiveOrderId(null);
+    setActiveOrderStatus(null);
     setCart([]);
     setSelectedCustomer(null);
     setNote('');
@@ -843,7 +846,8 @@ function CashierTerminal({ user, onLogout }) {
         tax: totals.tax,
         discount_amount: totals.totalDiscount,
         total: totals.total,
-        status: 'Paid',
+        status: activeOrderStatus && activeOrderStatus !== 'Draft' ? activeOrderStatus : 'Completed',
+        payment_status: 'Paid',
         payment_method: paymentMethod + (paymentMethod === 'Card' && cardRef ? ` (Ref: ${cardRef})` : '')
       };
 
@@ -896,6 +900,7 @@ function CashierTerminal({ user, onLogout }) {
   const resetTerminal = () => {
     setCart([]);
     setActiveOrderId(null);
+    setActiveOrderStatus(null);
     setSelectedTable(null);
     setSelectedCustomer(null);
     setNote('');
