@@ -29,22 +29,7 @@ import {
   QrCode
 } from 'lucide-react';
 
-const apiFetch = async (url, options = {}) => {
-  const saved = localStorage.getItem('user');
-  let token = null;
-  if (saved) {
-    try {
-      token = JSON.parse(saved).token;
-    } catch (e) {}
-  }
-  
-  const headers = {
-    ...options.headers,
-    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-  };
-  
-  return fetch(url, { ...options, headers });
-};
+import { apiFetch } from '../services/api.js';
 
 function AdminDashboard({ user, onLogout }) {
   const [activeTab, setActiveTab] = useState('overview'); 
@@ -586,6 +571,15 @@ function AdminDashboard({ user, onLogout }) {
                 <span>{tab.label}</span>
               </button>
             ))}
+            <a 
+              href="/kds" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="w-full flex items-center px-6 py-3 text-xs font-bold text-gray-500 hover:bg-gray-50 transition-all border-t border-gray-100"
+            >
+              <span className="mr-3"><Sliders size={18} /></span>
+              <span>Kitchen Display (KDS) ↗</span>
+            </a>
           </nav>
 
           <div className="px-6 pt-4 border-t border-[#E9ECEF]">
@@ -720,7 +714,7 @@ function AdminDashboard({ user, onLogout }) {
                                 </td>
                                 <td className="px-4 py-3 text-[#714B67] font-bold">₹{order.total.toFixed(2)}</td>
                                 <td className="px-4 py-3 text-right">
-                                  {order.status === 'Paid' ? (
+                                  {['Paid', 'Completed'].includes(order.status) || order.payment_method ? (
                                     <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[9px] font-bold uppercase">
                                       Settled
                                     </span>

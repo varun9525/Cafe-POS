@@ -232,6 +232,7 @@ function Login({ onLogin }) {
                     >
                       <option value="customer">Customer Loyalty (Kiosk)</option>
                       <option value="manager">Administrator (Manager)</option>
+                      <option value="cook">Kitchen Staff (Cook)</option>
                     </select>
                     <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500">
                       <span className="material-symbols-outlined">expand_more</span>
@@ -253,6 +254,7 @@ function Login({ onLogin }) {
                       <option value="admin">Administrator (Manager)</option>
                       <option value="employee">Employee / Staff (Cashier)</option>
                       <option value="customer">Customer Loyalty (Kiosk)</option>
+                      <option value="cook">Kitchen Staff (Cook)</option>
                     </select>
                     <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500">
                       <span className="material-symbols-outlined">expand_more</span>
@@ -381,6 +383,8 @@ function Login({ onLogin }) {
               </p>
               
               <div className="flex items-center space-x-4 opacity-50 text-xs">
+                <a className="hover:opacity-100 font-extrabold text-[#714B67]" href="/self-service" target="_blank" rel="noopener noreferrer">Self Service Kiosk ↗</a>
+                <span className="w-1 h-1 bg-gray-500 rounded-full"></span>
                 <a className="hover:opacity-100" href="#help">Help Center</a>
                 <span className="w-1 h-1 bg-gray-500 rounded-full"></span>
                 <a className="hover:opacity-100" href="#privacy">Privacy Policy</a>

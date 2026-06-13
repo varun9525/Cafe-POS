@@ -13,24 +13,9 @@ import {
   Filter 
 } from 'lucide-react';
 
-const apiFetch = async (url, options = {}) => {
-  const saved = localStorage.getItem('user');
-  let token = null;
-  if (saved) {
-    try {
-      token = JSON.parse(saved).token;
-    } catch (e) {}
-  }
-  
-  const headers = {
-    ...options.headers,
-    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-  };
-  
-  return fetch(url, { ...options, headers });
-};
+import { apiFetch } from '../services/api.js';
 
-function KDS() {
+function KDS({ onLogout }) {
   const [orders, setOrders] = useState([]);
   const [activeFilter, setActiveFilter] = useState('All');
   const [soundEnabled, setSoundEnabled] = useState(true);
@@ -69,15 +54,29 @@ function KDS() {
     }
   };
 
-  const fetchKDSOrders = async () => {
+  const fetchKDSOrders = async (shouldAlertOnNew = false) => {
     try {
       const res = await apiFetch('/api/orders');
       if (res.ok) {
         const data = await res.json();
         const kitchenOrders = data.filter(order => 
-          ['To Cook', 'Preparing', 'Completed'].includes(order.status)
+          ['To Cook', 'Paid', 'Preparing', 'Completed'].includes(order.status)
         );
-        setOrders(kitchenOrders);
+        
+        if (shouldAlertOnNew) {
+          setOrders(prev => {
+            const hasNew = kitchenOrders.some(newOrder => 
+              ['To Cook', 'Paid'].includes(newOrder.status) && 
+              !prev.some(oldOrder => oldOrder.id === newOrder.id)
+            );
+            if (hasNew) {
+              playAlertSound();
+            }
+            return kitchenOrders;
+          });
+        } else {
+          setOrders(kitchenOrders);
+        }
       }
     } catch (err) {
       console.error('Error fetching KDS orders:', err);
@@ -88,6 +87,12 @@ function KDS() {
     fetchKDSOrders();
 
     const socket = io();
+
+    socket.on('new_order', (newOrder) => {
+      if (['To Cook', 'Paid'].includes(newOrder.status)) {
+        fetchKDSOrders(true);
+      }
+    });
 
     socket.on('kitchen_order', (newOrder) => {
       setOrders(prev => {
@@ -104,7 +109,7 @@ function KDS() {
     });
 
     socket.on('order_updated', ({ id, status }) => {
-      fetchKDSOrders();
+      fetchKDSOrders(true);
     });
 
     return () => {
@@ -220,6 +225,15 @@ function KDS() {
               </button>
             ))}
           </div>
+
+          {onLogout && (
+            <button
+              onClick={onLogout}
+              className="px-4 py-2 bg-red-600 hover:bg-red-700 active:scale-95 text-white rounded-xl text-xs font-bold transition-all shadow"
+            >
+              Sign Out Cook
+            </button>
+          )}
         </div>
       </header>
 
@@ -231,12 +245,12 @@ function KDS() {
               <h2 className="font-extrabold text-sm uppercase tracking-wider text-gray-200">To Cook</h2>
             </div>
             <span className="bg-red-500/10 text-red-400 border border-red-500/20 px-2 py-0.5 rounded text-xs font-bold">
-              {orders.filter(o => o.status === 'To Cook').length} Tickets
+              {orders.filter(o => ['To Cook', 'Paid'].includes(o.status)).length} Tickets
             </span>
           </div>
 
           <div className="flex-grow overflow-y-auto space-y-4 pr-1 custom-scrollbar">
-            {orders.filter(o => o.status === 'To Cook').map((order) => {
+            {orders.filter(o => ['To Cook', 'Paid'].includes(o.status)).map((order) => {
               const duration = getTicketDuration(order.created_at);
               const isDelayed = duration.seconds > 180;
               const filteredItems = getFilteredItems(order.items);

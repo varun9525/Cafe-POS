@@ -33,6 +33,8 @@ function App() {
                 <Navigate to="/dashboard" replace />
               ) : user.role === 'cashier' ? (
                 <Navigate to="/cashier" replace />
+              ) : user.role === 'cook' ? (
+                <Navigate to="/kds" replace />
               ) : (
                 <Navigate to="/self-service" replace />
               )
@@ -71,7 +73,13 @@ function App() {
 
         <Route 
           path="/kds" 
-          element={<KDS />} 
+          element={
+            user && (user.role === 'cook' || user.role === 'manager') ? (
+              <KDS onLogout={handleLogout} />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          } 
         />
 
         <Route 

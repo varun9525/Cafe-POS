@@ -2,11 +2,14 @@ import sqlite3 from 'sqlite3';
 import bcrypt from 'bcryptjs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const dbPath = path.resolve(__dirname, 'pos.db');
+const dbPath = path.resolve(__dirname, process.env.DB_PATH || 'pos.db');
 
 export let resolveDbReady;
 export let rejectDbReady;
@@ -22,6 +25,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
   } else {
     console.log('Connected to SQLite database at:', dbPath);
     initializeDatabase()
+      .then(() => migrateOrdersToJsonSchema())
       .then(() => { if (resolveDbReady) resolveDbReady(); })
       .catch((initErr) => { if (rejectDbReady) rejectDbReady(initErr); });
   }
@@ -154,6 +158,18 @@ function initializeDatabase() {
       )
     `);
 
+    // 11. Order Items table
+    db.run(`
+      CREATE TABLE IF NOT EXISTS order_items (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        order_id INTEGER NOT NULL,
+        name TEXT NOT NULL,
+        price REAL NOT NULL,
+        quantity INTEGER NOT NULL,
+        FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
+      )
+    `);
+
     // --- DATABASE SCHEMA MIGRATIONS (Self-Healing) ---
     db.run("ALTER TABLE products ADD COLUMN uom TEXT DEFAULT 'pcs'", (err) => {
       if (err && !err.message.includes('duplicate column name')) {
@@ -193,7 +209,8 @@ function initializeDatabase() {
     const seedUsers = [
       ['Admin Manager', 'admin', hashPassword('admin123'), 'manager'],
       ['Cashier Staff', 'cashier', hashPassword('cashier123'), 'cashier'],
-      ['Customer User', 'customer', hashPassword('customer123'), 'customer']
+      ['Customer User', 'customer', hashPassword('customer123'), 'customer'],
+      ['Kitchen Cook', 'cook', hashPassword('cook123'), 'cook']
     ];
     seedUsers.forEach(([name, username, password, role]) => {
       db.run(
@@ -294,6 +311,94 @@ function initializeDatabase() {
     });
   });
 });
+}
+
+function migrateOrdersToJsonSchema() {
+  return new Promise((resolve, reject) => {
+    // 1. Create order_items table if not exists
+    db.run(`
+      CREATE TABLE IF NOT EXISTS order_items (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        order_id INTEGER NOT NULL,
+        name TEXT NOT NULL,
+        price REAL NOT NULL,
+        quantity INTEGER NOT NULL,
+        FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
+      )
+    `, (err) => {
+      if (err) {
+        console.error('Error creating order_items table:', err);
+        return reject(err);
+      }
+      
+      // 2. Query all orders to see if we have JSON strings to migrate
+      db.all("SELECT id, items FROM orders", [], (err, rows) => {
+        if (err) {
+          if (err.message.includes('no such column: items')) {
+            console.log('Migration: orders.items column already removed or migrated.');
+            return resolve();
+          }
+          console.error('Error querying orders for migration:', err);
+          return reject(err);
+        }
+
+        if (!rows || rows.length === 0) {
+          return resolve();
+        }
+
+        let migratedCount = 0;
+        let processedOrders = 0;
+
+        db.serialize(() => {
+          rows.forEach((order) => {
+            // Check if items already exist in order_items for this order
+            db.get("SELECT COUNT(*) as count FROM order_items WHERE order_id = ?", [order.id], (err, checkRow) => {
+              if (err) {
+                console.error(`Error checking migration for order #${order.id}:`, err);
+                processedOrders++;
+                if (processedOrders === rows.length) resolve();
+                return;
+              }
+
+              if (checkRow && checkRow.count === 0 && order.items && order.items !== '[]') {
+                try {
+                  const itemsList = JSON.parse(order.items);
+                  if (Array.isArray(itemsList) && itemsList.length > 0) {
+                    let itemsCount = 0;
+                    itemsList.forEach((item) => {
+                      db.run(
+                        `INSERT INTO order_items (order_id, name, price, quantity) VALUES (?, ?, ?, ?)`,
+                        [order.id, item.name, item.price, item.quantity],
+                        () => {
+                          itemsCount++;
+                          if (itemsCount === itemsList.length) {
+                            migratedCount++;
+                          }
+                        }
+                      );
+                    });
+                  }
+                } catch (parseErr) {
+                  console.error(`Error parsing items JSON for order #${order.id}:`, parseErr);
+                }
+              }
+
+              processedOrders++;
+              if (processedOrders === rows.length) {
+                // Give a slight delay to ensure database transactions finish inserting before resolving
+                setTimeout(() => {
+                  if (migratedCount > 0) {
+                    console.log(`Self-Healing Migration: successfully migrated ${migratedCount} orders to new order_items table.`);
+                  }
+                  resolve();
+                }, 100);
+              }
+            });
+          });
+        });
+      });
+    });
+  });
 }
 
 export default db;
