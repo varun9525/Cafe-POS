@@ -6,7 +6,7 @@ function Login({ onLogin }) {
   const [isSignup, setIsSignup] = useState(false);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [signupRole, setSignupRole] = useState('customer');
+  const [signupRole, setSignupRole] = useState('cook');
   const [signupSuccess, setSignupSuccess] = useState(null);
   const [role, setRole] = useState('employee');
   const [username, setUsername] = useState('');
@@ -230,7 +230,6 @@ function Login({ onLogin }) {
                       onChange={(e) => setSignupRole(e.target.value)}
                       className="w-full bg-[#f3f4f5] border border-[#E9ECEF] rounded-lg px-4 py-3 appearance-none text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#714B67]/20 focus:border-[#714B67] transition-all"
                     >
-                      <option value="customer">Customer Loyalty (Kiosk)</option>
                       <option value="manager">Administrator (Manager)</option>
                       <option value="cook">Kitchen Staff (Cook)</option>
                     </select>
@@ -253,7 +252,6 @@ function Login({ onLogin }) {
                     >
                       <option value="admin">Administrator (Manager)</option>
                       <option value="employee">Employee / Staff (Cashier)</option>
-                      <option value="customer">Customer Loyalty (Kiosk)</option>
                       <option value="cook">Kitchen Staff (Cook)</option>
                     </select>
                     <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500">

@@ -138,6 +138,80 @@ export default function(io, activeSockets) {
     );
   });
 
+  // --- CUSTOMERS CRM ---
+  router.get('/customers/crm', authenticateJWT, authorizeRoles('manager'), (req, res) => {
+    db.all(`
+      SELECT c.*, 
+             COALESCE(SUM(o.total), 0) AS total_spent,
+             COUNT(o.id) AS visit_count,
+             MAX(o.created_at) AS last_visit
+      FROM customers c
+      LEFT JOIN orders o ON c.id = o.customer_id AND o.payment_status = 'Paid'
+      GROUP BY c.id
+      ORDER BY total_spent DESC
+    `, [], (err, rows) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json(rows);
+    });
+  });
+
+  router.get('/customers/crm/:id', authenticateJWT, authorizeRoles('manager'), (req, res) => {
+    const customerId = req.params.id;
+    db.get(`
+      SELECT c.*, 
+             COALESCE(SUM(o.total), 0) AS total_spent,
+             COUNT(o.id) AS visit_count,
+             MAX(o.created_at) AS last_visit
+      FROM customers c
+      LEFT JOIN orders o ON c.id = o.customer_id AND o.payment_status = 'Paid'
+      WHERE c.id = ?
+      GROUP BY c.id
+    `, [customerId], (err, customerInfo) => {
+      if (err) return res.status(500).json({ error: err.message });
+      if (!customerInfo) return res.status(404).json({ error: 'Customer not found' });
+
+      db.all(`
+        SELECT id, total, subtotal, tax, discount_amount, status, payment_status, created_at, payment_method, coupon_code
+        FROM orders
+        WHERE customer_id = ?
+        ORDER BY id DESC
+      `, [customerId], (err, orderRows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        
+        db.all(`
+          SELECT oi.* 
+          FROM order_items oi
+          JOIN orders o ON oi.order_id = o.id
+          WHERE o.customer_id = ?
+        `, [customerId], (err, itemRows) => {
+          if (err) return res.status(500).json({ error: err.message });
+
+          const itemsByOrderId = {};
+          itemRows.forEach(item => {
+            if (!itemsByOrderId[item.order_id]) {
+              itemsByOrderId[item.order_id] = [];
+            }
+            itemsByOrderId[item.order_id].push({
+              name: item.name,
+              price: item.price,
+              quantity: item.quantity
+            });
+          });
+
+          const orders = orderRows.map(o => ({
+            ...o,
+            items: itemsByOrderId[o.id] || []
+          }));
+
+          res.json({
+            ...customerInfo,
+            orders
+          });
+        });
+      });
+    });
+  });
+
   // --- EMPLOYEES ---
   router.get('/employees', authenticateJWT, authorizeRoles('manager'), (req, res) => {
     db.all('SELECT id, name, username, role, archived FROM users', [], (err, rows) => {

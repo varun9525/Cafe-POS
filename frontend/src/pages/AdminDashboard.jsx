@@ -26,7 +26,9 @@ import {
   Check,
   Download,
   CreditCard,
-  QrCode
+  QrCode,
+  Search as SearchIcon,
+  Award
 } from 'lucide-react';
 
 import { apiFetch } from '../services/api.js';
@@ -56,6 +58,8 @@ function AdminDashboard({ user, onLogout }) {
   const [promotions, setPromotions] = useState([]);
   const [paymentMethods, setPaymentMethods] = useState([]);
   const [employees, setEmployees] = useState([]);
+  
+
   
   const [reportPeriod, setReportPeriod] = useState('Today');
   const [reportData, setReportData] = useState(null);
@@ -138,6 +142,8 @@ function AdminDashboard({ user, onLogout }) {
 
       const empRes = await apiFetch('/api/employees');
       if (empRes.ok) setEmployees(await empRes.json());
+
+
 
     } catch (err) {
       console.error('Error fetching dashboard entities:', err);
@@ -555,7 +561,7 @@ function AdminDashboard({ user, onLogout }) {
               { id: 'tables', label: 'Floor Table Map', icon: <Grid size={18} /> },
               { id: 'promotions', label: 'Coupons & Promos', icon: <Percent size={18} /> },
               { id: 'payments', label: 'Payment Options', icon: <CreditCard size={18} /> },
-              { id: 'employees', label: 'Barista Staff', icon: <Users size={18} /> },
+              { id: 'employees', label: 'Barista Staff', icon: <User size={18} /> },
               { id: 'reports', label: 'Shift Sales Reports', icon: <BarChart3 size={18} /> }
             ].map(tab => (
               <button 
@@ -1261,6 +1267,8 @@ function AdminDashboard({ user, onLogout }) {
               </div>
             )}
 
+
+
             {activeTab === 'reports' && (
               <div className="space-y-6 animate-in fade-in duration-200">
                 <div className="flex flex-col sm:flex-row justify-between sm:items-center bg-white p-6 rounded-2xl border border-[#E9ECEF] shadow-sm gap-4">
@@ -1921,6 +1929,8 @@ function AdminDashboard({ user, onLogout }) {
           </form>
         </div>
       )}
+
+
     </div>
   );
 }
