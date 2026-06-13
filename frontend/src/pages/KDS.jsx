@@ -82,7 +82,14 @@ function KDS({ onLogout }) {
   useEffect(() => {
     fetchKDSOrders();
 
-    const socket = io();
+    const saved = localStorage.getItem('user');
+    let token = null;
+    if (saved) {
+      try {
+        token = JSON.parse(saved).token;
+      } catch (e) {}
+    }
+    const socket = io({ auth: { token } });
 
     socket.on('new_order', (newOrder) => {
       if (['To Cook', 'Paid'].includes(newOrder.status)) {

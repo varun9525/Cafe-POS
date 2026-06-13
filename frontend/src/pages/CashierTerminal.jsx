@@ -845,7 +845,7 @@ function CashierTerminal({ user, onLogout }) {
         tax: totals.tax,
         discount_amount: totals.totalDiscount,
         total: totals.total,
-        status: activeOrderStatus && activeOrderStatus !== 'Draft' ? activeOrderStatus : 'Completed',
+        status: activeOrderStatus && activeOrderStatus !== 'Draft' ? activeOrderStatus : 'To Cook',
         payment_status: 'Paid',
         payment_method: paymentMethod + (paymentMethod === 'Card' && cardRef ? ` (Ref: ${cardRef})` : ''),
         coupon_code: appliedCoupon ? appliedCoupon.code : null,
