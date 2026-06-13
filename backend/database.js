@@ -233,59 +233,64 @@ function initializeDatabase() {
     // Seed Products
     const seedProducts = [
       // Starters (Veg)
-      ['Cheese Corn Samosa (3 Pieces)', 40, 'Starters (Veg)', 'https://images.unsplash.com/photo-1601050690597-df056fb4ce78?w=500', 'Crispy samosas stuffed with corn and gooey cheese.'],
-      ['Cheese Jalapeno Samosa (3 Pieces)', 40, 'Starters (Veg)', 'https://images.unsplash.com/photo-1601050690597-df056fb4ce78?w=500', 'Samosas with a spicy kick of jalapenos and melted cheese.'],
-      ['Cheese Pizza Samosa (3 Pieces)', 40, 'Starters (Veg)', 'https://images.unsplash.com/photo-1601050690597-df056fb4ce78?w=500', 'Pizza style samosas packed with cheese and Italian seasoning.'],
-      ['Crispy Potato Wedges', 40, 'Starters (Veg)', 'https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=500', 'Golden brown, seasoned potato wedges.'],
-      ['Aloo Masala Tikki (3 Pieces)', 40, 'Starters (Veg)', 'https://images.unsplash.com/photo-1589301760014-d929f3979dbc?w=500', 'Traditional spicy potato patties.'],
-      ['Tandoori Nuggets (6 Pieces)', 50, 'Starters (Veg)', 'https://images.unsplash.com/photo-1569058242253-92a9c755a0ec?w=500', 'Crispy nuggets with tandoori spices.'],
-      ['Chilli Garlic Potato Popcorn', 50, 'Starters (Veg)', 'https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=500', 'Bite-sized potato tots tossed in chili garlic seasoning.'],
-      ['Veg Cutlet (2 Pieces)', 50, 'Starters (Veg)', 'https://images.unsplash.com/photo-1589301760014-d929f3979dbc?w=500', 'Crispy vegetable patties.'],
-      ['Garlic Bread', 60, 'Starters (Veg)', '/garlic_bread.png', 'Toasted bread flavored with garlic butter and herbs.'],
-      ['French Fries', 70, 'Starters (Veg)', 'https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=500', 'Classic salted potato fries.'],
-      ['Cheese Garlic Bread', 80, 'Starters (Veg)', '/garlic_bread.png', 'Toasted garlic bread loaded with melted mozzarella.'],
-      ['Veggie Fingers (7 Pieces)', 80, 'Starters (Veg)', 'https://images.unsplash.com/photo-1569058242253-92a9c755a0ec?w=500', 'Crispy, breaded mixed vegetable sticks.'],
-      ['Potato Cheese Shotz (9 Pieces)', 90, 'Starters (Veg)', 'https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=500', 'Bite-sized potato and cheese nuggets.'],
+      ['Cheese Corn Samosa (3 Pieces)', 40, 'Starters (Veg)', '/images/samosa.jpg', 'Crispy samosas stuffed with corn and gooey cheese.'],
+      ['Cheese Jalapeno Samosa (3 Pieces)', 40, 'Starters (Veg)', '/images/samosa.jpg', 'Samosas with a spicy kick of jalapenos and melted cheese.'],
+      ['Cheese Pizza Samosa (3 Pieces)', 40, 'Starters (Veg)', '/images/samosa.jpg', 'Pizza style samosas packed with cheese and Italian seasoning.'],
+      ['Crispy Potato Wedges', 40, 'Starters (Veg)', '/images/potato_wedges.jpg', 'Golden brown, seasoned potato wedges.'],
+      ['Aloo Masala Tikki (3 Pieces)', 40, 'Starters (Veg)', '/images/aloo_tikki.jpg', 'Traditional spicy potato patties.'],
+      ['Tandoori Nuggets (6 Pieces)', 50, 'Starters (Veg)', '/images/nuggets.jpg', 'Crispy nuggets with tandoori spices.'],
+      ['Chilli Garlic Potato Popcorn', 50, 'Starters (Veg)', '/images/potato_wedges.jpg', 'Bite-sized potato tots tossed in chili garlic seasoning.'],
+      ['Veg Cutlet (2 Pieces)', 50, 'Starters (Veg)', '/images/aloo_tikki.jpg', 'Crispy vegetable patties.'],
+      ['Garlic Bread', 60, 'Starters (Veg)', '/images/garlic_bread.png', 'Toasted bread flavored with garlic butter and herbs.'],
+      ['French Fries', 70, 'Starters (Veg)', '/images/potato_wedges.jpg', 'Classic salted potato fries.'],
+      ['Cheese Garlic Bread', 80, 'Starters (Veg)', '/images/garlic_bread.png', 'Toasted garlic bread loaded with melted mozzarella.'],
+      ['Veggie Fingers (7 Pieces)', 80, 'Starters (Veg)', '/images/nuggets.jpg', 'Crispy, breaded mixed vegetable sticks.'],
+      ['Potato Cheese Shotz (9 Pieces)', 90, 'Starters (Veg)', '/images/potato_wedges.jpg', 'Bite-sized potato and cheese nuggets.'],
 
       // Loaded Fries
-      ['Spicy Masala French Fries', 80, 'Loaded Fries', 'https://images.unsplash.com/photo-1585109649139-366815a0d713?w=500', 'Fries tossed in spicy masala powder.'],
-      ['Cheese Diced French Fries', 90, 'Loaded Fries', 'https://images.unsplash.com/photo-1585109649139-366815a0d713?w=500', 'Loaded fries topped with melted liquid cheese.'],
-      ['Chocolicious French Fries', 100, 'Loaded Fries', 'https://images.unsplash.com/photo-1585109649139-366815a0d713?w=500', 'Unique sweet fries topped with chocolate sauce.'],
+      ['Spicy Masala French Fries', 80, 'Loaded Fries', '/images/loaded_fries.jpg', 'Fries tossed in spicy masala powder.'],
+      ['Cheese Diced French Fries', 90, 'Loaded Fries', '/images/loaded_fries.jpg', 'Loaded fries topped with melted liquid cheese.'],
+      ['Chocolicious French Fries', 100, 'Loaded Fries', '/images/loaded_fries.jpg', 'Unique sweet fries topped with chocolate sauce.'],
 
       // Hot Coffees
-      ['Filter Coffee', 55, 'Hot Coffees', 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=500', 'South Indian style filter coffee.'],
-      ['Espresso', 60, 'Hot Coffees', 'https://images.unsplash.com/photo-1510707577719-0d859b304910?w=500', 'Strong, concentrated shot of coffee.'],
-      ['Americano', 70, 'Hot Coffees', 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=500', 'Espresso diluted with hot water.'],
-      ['Café Latte', 80, 'Hot Coffees', 'https://images.unsplash.com/photo-1541167760496-1628856ab772?w=500', 'Espresso with steamed milk and a thin layer of foam.'],
-      ['Cappucino', 85, 'Hot Coffees', 'https://images.unsplash.com/photo-1572442388796-11668a67e53d?w=500', 'Espresso with equal parts steamed milk and foam.'],
-      ['Café Mocha', 90, 'Hot Coffees', 'https://images.unsplash.com/photo-1578314675249-a6910f80cc4e?w=500', 'Espresso with hot milk and chocolate.'],
-      ['Hot Chocolate', 90, 'Hot Coffees', 'https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=500', 'Rich, creamy chocolate drink.'],
-      ['Irish Regular', 90, 'Hot Coffees', 'https://images.unsplash.com/photo-1572442388796-11668a67e53d?w=500', 'Hot coffee flavored with Irish cream syrup.'],
+      ['Filter Coffee', 55, 'Hot Coffees', '/images/filter_coffee.jpg', 'South Indian style filter coffee.'],
+      ['Espresso', 60, 'Hot Coffees', '/images/espresso.jpg', 'Strong, concentrated shot of coffee.'],
+      ['Americano', 70, 'Hot Coffees', '/images/americano.jpg', 'Espresso diluted with hot water.'],
+      ['Café Latte', 80, 'Hot Coffees', '/images/latte.jpg', 'Espresso with steamed milk and a thin layer of foam.'],
+      ['Cappucino', 85, 'Hot Coffees', '/images/cappuccino.jpg', 'Espresso with equal parts steamed milk and foam.'],
+      ['Café Mocha', 90, 'Hot Coffees', '/images/mocha.jpg', 'Espresso with hot milk and chocolate.'],
+      ['Hot Chocolate', 90, 'Hot Coffees', '/images/hot_chocolate.jpg', 'Rich, creamy chocolate drink.'],
+      ['Irish Regular', 90, 'Hot Coffees', '/images/cappuccino.jpg', 'Hot coffee flavored with Irish cream syrup.'],
 
       // Flavoured Coffees
-      ['Hazelnut Coffee', 100, 'Flavoured Coffees', 'https://images.unsplash.com/photo-1541167760496-1628856ab772?w=500', 'Coffee infused with premium hazelnut flavor.'],
-      ['Vanilla Coffee', 100, 'Flavoured Coffees', 'https://images.unsplash.com/photo-1541167760496-1628856ab772?w=500', 'Coffee infused with sweet vanilla syrup.'],
-      ['Caramel Coffee', 100, 'Flavoured Coffees', 'https://images.unsplash.com/photo-1541167760496-1628856ab772?w=500', 'Coffee infused with rich caramel sauce.'],
+      ['Hazelnut Coffee', 100, 'Flavoured Coffees', '/images/latte.jpg', 'Coffee infused with premium hazelnut flavor.'],
+      ['Vanilla Coffee', 100, 'Flavoured Coffees', '/images/latte.jpg', 'Coffee infused with sweet vanilla syrup.'],
+      ['Caramel Coffee', 100, 'Flavoured Coffees', '/images/latte.jpg', 'Coffee infused with rich caramel sauce.'],
 
       // Cold Coffees
-      ['Frappe Chill', 100, 'Cold Coffees', 'https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=500', 'Classic chilled blended coffee.'],
-      ['Italian Choco Swiss Cold Coffee', 110, 'Cold Coffees', 'https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=500', 'Cold coffee with rich Swiss chocolate blend.'],
-      ['Café Vanilla Frappe', 120, 'Cold Coffees', 'https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=500', 'Blended cold coffee with vanilla extract.'],
-      ['Choco Chill Frappe', 120, 'Cold Coffees', 'https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=500', 'Rich chocolate-flavored blended cold coffee.'],
-      ['Café Cookie Crunch', 130, 'Cold Coffees', 'https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=500', 'Cold coffee blended with cookies and cream.'],
-      ['Café Caramel Frappe', 130, 'Cold Coffees', 'https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=500', 'Cold coffee blended with sweet caramel sauce.'],
-      ['Ice Cream Topping', 20, 'Cold Coffees', 'https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=500', 'Extra scoop of vanilla ice cream on top.']
+      ['Frappe Chill', 100, 'Cold Coffees', '/images/cold_coffee.jpg', 'Classic chilled blended coffee.'],
+      ['Italian Choco Swiss Cold Coffee', 110, 'Cold Coffees', '/images/cold_coffee.jpg', 'Cold coffee with rich Swiss chocolate blend.'],
+      ['Café Vanilla Frappe', 120, 'Cold Coffees', '/images/cold_coffee.jpg', 'Blended cold coffee with vanilla extract.'],
+      ['Choco Chill Frappe', 120, 'Cold Coffees', '/images/cold_coffee.jpg', 'Rich chocolate-flavored blended cold coffee.'],
+      ['Café Cookie Crunch', 130, 'Cold Coffees', '/images/cold_coffee.jpg', 'Cold coffee blended with cookies and cream.'],
+      ['Café Caramel Frappe', 130, 'Cold Coffees', '/images/cold_coffee.jpg', 'Cold coffee blended with sweet caramel sauce.'],
+      ['Ice Cream Topping', 20, 'Cold Coffees', '/images/cold_coffee.jpg', 'Extra scoop of vanilla ice cream on top.']
     ];
-    seedProducts.forEach(([name, price, category, image, description]) => {
-      db.run(
-        `INSERT OR IGNORE INTO products (name, price, category, image, description, uom, tax, stock) VALUES (?, ?, ?, ?, ?, 'pcs', 8.0, 100)`,
-        [name, price, category, image, description]
-      );
-    });
+    db.get("SELECT COUNT(*) as count FROM products", [], (err, row) => {
+      if (row && row.count === 0) {
+        console.log("Seeding products...");
+        seedProducts.forEach(([name, price, category, image, description]) => {
+          db.run(
+            `INSERT INTO products (name, price, category, image, description, uom, tax, stock) VALUES (?, ?, ?, ?, ?, 'pcs', 8.0, 100)`,
+            [name, price, category, image, description]
+          );
+        });
+      }
 
-    db.run("SELECT 1", (err) => {
-      if (err) reject(err);
-      else resolve();
+      db.run("SELECT 1", (err) => {
+        if (err) reject(err);
+        else resolve();
+      });
     });
   });
 });

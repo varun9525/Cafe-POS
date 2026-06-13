@@ -5,6 +5,12 @@ import cors from 'cors';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import db from './database.js';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const server = http.createServer(app);
@@ -18,7 +24,8 @@ const io = new Server(server, {
 const JWT_SECRET = 'odoo_cafe_pos_super_secret_key';
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+app.use('/images', express.static(path.join(__dirname, '../frontend/public/images')));
 
 // --- JWT AUTHENTICATION MIDDLEWARES ---
 const authenticateJWT = (req, res, next) => {
@@ -139,6 +146,35 @@ app.delete('/api/categories/:id', authenticateJWT, authorizeRoles('manager'), (r
   });
 });
 
+// Helper to decode base64 images and save to public/images folder
+const saveUploadedImage = (name, imageBase64) => {
+  if (imageBase64 && imageBase64.startsWith('data:image/')) {
+    const matches = imageBase64.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,(.+)$/);
+    if (matches && matches.length === 3) {
+      const type = matches[1];
+      const data = matches[2];
+      const buffer = Buffer.from(data, 'base64');
+      
+      let ext = 'png';
+      if (type.includes('jpeg') || type.includes('jpg')) ext = 'jpg';
+      else if (type.includes('gif')) ext = 'gif';
+      else if (type.includes('webp')) ext = 'webp';
+      
+      const safeName = name.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_').trim();
+      const filename = `${safeName || 'custom'}_${Date.now()}.${ext}`;
+      const publicImagesDir = path.join(__dirname, '../frontend/public/images');
+      
+      if (!fs.existsSync(publicImagesDir)) {
+        fs.mkdirSync(publicImagesDir, { recursive: true });
+      }
+      
+      fs.writeFileSync(path.join(publicImagesDir, filename), buffer);
+      return `/images/${filename}`;
+    }
+  }
+  return imageBase64;
+};
+
 // --- 3. PRODUCTS API ---
 app.get('/api/products', (req, res) => {
   db.all('SELECT * FROM products', [], (err, rows) => {
@@ -149,24 +185,26 @@ app.get('/api/products', (req, res) => {
 
 app.post('/api/products', authenticateJWT, authorizeRoles('manager'), (req, res) => {
   const { name, price, category, image, description, uom, tax, stock } = req.body;
+  const finalImagePath = saveUploadedImage(name, image);
   db.run(
     `INSERT INTO products (name, price, category, image, description, uom, tax, stock) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-    [name, price, category, image, description, uom || 'pcs', tax || 8.0, stock || 50],
+    [name, price, category, finalImagePath, description, uom || 'pcs', tax || 8.0, stock || 50],
     function (err) {
       if (err) return res.status(500).json({ error: err.message });
-      res.status(201).json({ id: this.lastID, name, price, category, image, description, uom, tax, stock });
+      res.status(201).json({ id: this.lastID, name, price, category, image: finalImagePath, description, uom, tax, stock });
     }
   );
 });
 
 app.put('/api/products/:id', authenticateJWT, authorizeRoles('manager'), (req, res) => {
   const { name, price, category, image, description, uom, tax, stock } = req.body;
+  const finalImagePath = saveUploadedImage(name, image);
   db.run(
     `UPDATE products SET name = ?, price = ?, category = ?, image = ?, description = ?, uom = ?, tax = ?, stock = ? WHERE id = ?`,
-    [name, price, category, image, description, uom, tax, stock, req.params.id],
+    [name, price, category, finalImagePath, description, uom, tax, stock, req.params.id],
     function (err) {
       if (err) return res.status(500).json({ error: err.message });
-      res.json({ id: req.params.id, name, price, category, image, description, uom, tax, stock });
+      res.json({ id: req.params.id, name, price, category, image: finalImagePath, description, uom, tax, stock });
     }
   );
 });
@@ -707,7 +745,7 @@ app.post('/api/auth/signup', (req, res) => {
 });
 
 app.post('/api/auth/login', (req, res) => {
-  const { username, password } = req.body;
+  const { username, password, role } = req.body;
   // Support email or username
   db.get('SELECT * FROM users WHERE username = ? OR username = ?', [username, username.split('@')[0]], (err, user) => {
     if (err) return res.status(500).json({ error: 'Database error' });
@@ -716,6 +754,18 @@ app.post('/api/auth/login', (req, res) => {
 
     const valid = bcrypt.compareSync(password, user.password);
     if (!valid) return res.status(401).json({ error: 'Invalid credentials' });
+
+    // Validate access role matching if role is passed from client
+    if (role) {
+      let expectedDbRole = '';
+      if (role === 'admin') expectedDbRole = 'manager';
+      else if (role === 'employee') expectedDbRole = 'cashier';
+      else if (role === 'customer') expectedDbRole = 'customer';
+
+      if (expectedDbRole && user.role !== expectedDbRole) {
+        return res.status(401).json({ error: 'Access denied: incorrect credentials for the selected role' });
+      }
+    }
 
     const token = jwt.sign({ id: user.id, username: user.username, role: user.role, name: user.name }, JWT_SECRET);
     res.json({ token, role: user.role, username: user.username, name: user.name });
@@ -753,5 +803,5 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
-  console.log(`Backend server running on http://localhost:${PORT}`);
+  console.log(`Backend server active on http://localhost:${PORT}`);
 });

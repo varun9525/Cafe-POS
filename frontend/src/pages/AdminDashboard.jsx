@@ -275,6 +275,16 @@ function AdminDashboard({ user, onLogout }) {
     setProdStock('50');
   };
 
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setProdImage(reader.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
   // ------------------ CATEGORIES CRUD ------------------
   const handleCategorySubmit = async (e) => {
     e.preventDefault();
@@ -767,7 +777,7 @@ function AdminDashboard({ user, onLogout }) {
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-3">
                               <img 
-                                src={prod.image || 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=500'} 
+                                src={prod.image || '/images/default_coffee.jpg'} 
                                 alt={prod.name} 
                                 className="w-9 h-9 rounded-lg object-cover bg-gray-100" 
                               />
@@ -1244,14 +1254,33 @@ function AdminDashboard({ user, onLogout }) {
                   </div>
 
                   <div>
-                    <label className="block font-bold text-gray-400 mb-1">Image URL</label>
-                    <input 
-                      type="text" 
-                      value={prodImage} 
-                      onChange={(e) => setProdImage(e.target.value)} 
-                      placeholder="https://images.unsplash.com/... or /images/..."
-                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 focus:ring-1 focus:ring-[#714B67] focus:outline-none font-semibold transition-all" 
-                    />
+                    <label className="block font-bold text-gray-400 mb-1">Product Image</label>
+                    <div className="flex gap-3 items-center">
+                      <input 
+                        type="file" 
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        className="hidden"
+                        id="product-image-upload"
+                      />
+                      <label 
+                        htmlFor="product-image-upload"
+                        className="px-4 py-2.5 border border-[#714B67] text-[#714B67] hover:bg-purple-50 rounded-xl font-bold cursor-pointer text-center flex-grow transition-all whitespace-nowrap block"
+                      >
+                        Upload Photo
+                      </label>
+                      <input 
+                        type="text" 
+                        value={prodImage && prodImage.startsWith('data:image/') ? 'Custom Local Image Uploaded' : prodImage} 
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val === 'Custom Local Image Uploaded') return; // Do nothing
+                          setProdImage(val);
+                        }} 
+                        placeholder="/images/... or upload"
+                        className="border border-gray-200 rounded-xl px-3 py-2.5 focus:ring-1 focus:ring-[#714B67] focus:outline-none font-semibold transition-all w-2/3" 
+                      />
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-3 gap-3">
@@ -1305,7 +1334,7 @@ function AdminDashboard({ user, onLogout }) {
                             className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
                             onError={(e) => {
                               e.target.onerror = null; 
-                              e.target.src = 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=500'; // Default Fallback
+                              e.target.src = '/images/default_coffee.jpg'; // Default Fallback
                             }}
                           />
                         ) : (

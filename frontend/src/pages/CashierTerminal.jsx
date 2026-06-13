@@ -1083,7 +1083,7 @@ function CashierTerminal({ user, onLogout }) {
                       <img 
                         alt={product.name} 
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
-                        src={product.image || 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=500'} 
+                        src={product.image || '/images/default_coffee.jpg'} 
                       />
                       <span className="absolute bottom-2 right-2 bg-white px-2 py-0.5 rounded font-black text-xs text-[#714B67] shadow-sm">
                         ₹{product.price.toFixed(2)}

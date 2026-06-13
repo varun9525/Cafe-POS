@@ -69,6 +69,7 @@ function Login({ onLogin }) {
           body: JSON.stringify({
             username: normalizedUsername,
             password,
+            role,
           }),
         });
 
@@ -291,6 +292,20 @@ function Login({ onLogin }) {
             </form>
 
             <div className="pt-4 flex flex-col items-center space-y-4">
+              {isSignup && (
+                <button 
+                  type="button"
+                  onClick={() => {
+                    setIsSignup(false);
+                    setError(null);
+                    setSignupSuccess(null);
+                  }}
+                  className="w-full flex items-center justify-center space-x-2 py-3 rounded-xl border-2 border-[#714B67] text-[#714B67] font-semibold hover:bg-[#714B67]/5 transition-all transform active:scale-[0.98] group"
+                >
+                  <span className="material-symbols-outlined text-[18px] group-hover:-translate-x-1 transition-transform">arrow_back</span>
+                  <span>Back to Sign In</span>
+                </button>
+              )}
               <p className="text-xs text-gray-500">
                 {isSignup ? 'Already have an account?' : "Don't have an account yet?"} 
                 <button 
