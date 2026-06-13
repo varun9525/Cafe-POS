@@ -8,23 +8,13 @@ function Login({ onLogin }) {
   const [signupRole, setSignupRole] = useState('customer');
   const [signupSuccess, setSignupSuccess] = useState(null);
   const [role, setRole] = useState('employee');
-  const [username, setUsername] = useState('cashier');
-  const [password, setPassword] = useState('cashier123');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   const handleRoleChange = (selectedRole) => {
     setRole(selectedRole);
-    if (selectedRole === 'admin') {
-      setUsername('admin');
-      setPassword('admin123');
-    } else if (selectedRole === 'employee') {
-      setUsername('cashier');
-      setPassword('cashier123');
-    } else if (selectedRole === 'customer') {
-      setUsername('customer');
-      setPassword('customer123');
-    }
   };
 
   const handleSubmit = async (e) => {
