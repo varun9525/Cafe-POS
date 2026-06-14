@@ -20,6 +20,7 @@ function KDS({ onLogout }) {
   const [activeFilter, setActiveFilter] = useState('All');
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [crossedItems, setCrossedItems] = useState({}); // orderId-itemName key
+  const [completedPage, setCompletedPage] = useState(1);
 
   const playAlertSound = () => {
     if (!soundEnabled) return;
@@ -186,6 +187,29 @@ function KDS({ onLogout }) {
     }, 1000);
     return () => clearInterval(timer);
   }, []);
+
+  // Reset page to 1 on filter switch
+  useEffect(() => {
+    setCompletedPage(1);
+  }, [activeFilter]);
+
+  const COMPLETED_PER_PAGE = 6;
+  const completedOrders = orders.filter(o => {
+    if (o.status !== 'Completed') return false;
+    const filteredItems = getFilteredItems(o.items);
+    return filteredItems.length > 0;
+  });
+
+  const totalCompletedPages = Math.ceil(completedOrders.length / COMPLETED_PER_PAGE) || 1;
+
+  useEffect(() => {
+    if (completedPage > totalCompletedPages) {
+      setCompletedPage(totalCompletedPages);
+    }
+  }, [completedOrders.length, totalCompletedPages, completedPage]);
+
+  const startIndex = (completedPage - 1) * COMPLETED_PER_PAGE;
+  const paginatedCompleted = completedOrders.slice(startIndex, startIndex + COMPLETED_PER_PAGE);
 
   return (
     <div className="min-h-screen bg-[#0f1115] text-white flex flex-col font-sans">
@@ -424,15 +448,13 @@ function KDS({ onLogout }) {
               <h2 className="font-extrabold text-sm uppercase tracking-wider text-gray-200">Completed</h2>
             </div>
             <span className="bg-green-500/10 text-green-400 border border-green-500/20 px-2 py-0.5 rounded text-xs font-bold">
-              {orders.filter(o => o.status === 'Completed').length} Tickets
+              {completedOrders.length} Tickets
             </span>
           </div>
 
-          <div className="flex-grow overflow-y-auto space-y-4 pr-1 custom-scrollbar">
-            {orders.filter(o => o.status === 'Completed').map((order) => {
+          <div className="flex-grow overflow-y-auto space-y-4 pr-1 custom-scrollbar mb-4">
+            {paginatedCompleted.map((order) => {
               const filteredItems = getFilteredItems(order.items);
-              if (filteredItems.length === 0) return null;
-
               return (
                 <div 
                   key={order.id}
@@ -466,7 +488,34 @@ function KDS({ onLogout }) {
                 </div>
               );
             })}
+            {paginatedCompleted.length === 0 && (
+              <div className="h-full flex items-center justify-center text-zinc-500 text-xs py-8">
+                No completed orders.
+              </div>
+            )}
           </div>
+
+          {totalCompletedPages > 1 && (
+            <div className="flex justify-between items-center pt-3 border-t border-[#21262d] shrink-0">
+              <button
+                disabled={completedPage === 1}
+                onClick={() => setCompletedPage(prev => Math.max(prev - 1, 1))}
+                className="px-3 py-1.5 bg-[#21262d] hover:bg-[#30363d] disabled:opacity-40 disabled:hover:bg-[#21262d] text-xs font-bold rounded-lg transition-colors border border-[#30363d] text-gray-300 flex items-center gap-1 select-none"
+              >
+                &larr; Prev
+              </button>
+              <span className="text-xs text-gray-400 font-bold font-mono">
+                Page {completedPage} of {totalCompletedPages}
+              </span>
+              <button
+                disabled={completedPage === totalCompletedPages}
+                onClick={() => setCompletedPage(prev => Math.min(prev + 1, totalCompletedPages))}
+                className="px-3 py-1.5 bg-[#21262d] hover:bg-[#30363d] disabled:opacity-40 disabled:hover:bg-[#21262d] text-xs font-bold rounded-lg transition-colors border border-[#30363d] text-gray-300 flex items-center gap-1 select-none"
+              >
+                Next &rarr;
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>
