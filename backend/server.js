@@ -15,6 +15,7 @@ import productRoutes from './src/routes/productRoutes.js';
 import sessionRoutes from './src/routes/sessionRoutes.js';
 import orderRoutes from './src/routes/orderRoutes.js';
 import miscRoutes from './src/routes/miscRoutes.js';
+import agentChatRoutes from './src/routes/agentChat.js';
 
 dotenv.config();
 
@@ -70,6 +71,7 @@ app.use('/api', productRoutes);
 app.use('/api', sessionRoutes(io));
 app.use('/api', orderRoutes(io));
 app.use('/api', miscRoutes(io, activeSockets));
+app.use('/api', agentChatRoutes);
 
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {

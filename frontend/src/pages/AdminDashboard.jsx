@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
-import { 
-  Utensils, 
-  LayoutDashboard, 
-  Inbox, 
-  BarChart3, 
-  Users, 
-  Settings as SettingsIcon, 
-  Bell, 
-  User, 
-  DollarSign, 
-  FileSpreadsheet, 
+import {
+  Utensils,
+  LayoutDashboard,
+  Inbox,
+  BarChart3,
+  Users,
+  Settings as SettingsIcon,
+  Bell,
+  User,
+  DollarSign,
+  FileSpreadsheet,
   AlertTriangle,
   RefreshCw,
   TrendingUp,
@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 
 import { apiFetch } from '../services/api.js';
+import AgentChatWidget from '../components/AgentChatWidget.jsx';
 
 function AdminDashboard({ user, onLogout }) {
   const [activeTab, setActiveTab] = useState('overview'); 
@@ -1931,6 +1932,8 @@ function AdminDashboard({ user, onLogout }) {
       )}
 
 
+      {/* IBM Granite AI Manager Chatbot — floating widget */}
+      <AgentChatWidget />
     </div>
   );
 }
