@@ -33,7 +33,21 @@ const io = new Server(server, {
 
 const JWT_SECRET = process.env.JWT_SECRET || 'odoo_cafe_pos_super_secret_key';
 
-app.use(cors());
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',')
+  : ['http://localhost:5173', 'http://localhost:4173'];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, curl, Postman)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.some(o => origin.startsWith(o.trim()))) {
+      return callback(null, true);
+    }
+    callback(new Error(`CORS blocked: ${origin}`));
+  },
+  credentials: true
+}));
 app.use(express.json({ limit: '10mb' }));
 app.use('/images', express.static(path.join(__dirname, '../frontend/public/images')));
 

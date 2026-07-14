@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: cafe-pos-backend
+    runtime: node
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+      - key: JWT_SECRET
+        sync: false
+      - key: WATSONX_API_KEY
+        sync: false
+      - key: WATSONX_PROJECT_ID
+        sync: false
+      - key: WATSONX_REGION
+        value: us-south
+      - key: WATSONX_MODEL_ID
+        value: ibm/granite-3-8b-instruct
+      - key: ALLOWED_ORIGINS
+        sync: false
