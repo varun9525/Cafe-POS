@@ -355,7 +355,9 @@ async function callWatsonx(messages, tools) {
     throw new Error(`watsonx.ai API error ${chatRes.status}: ${txt}`);
   }
 
-  return chatRes.json();
+  const responseJson = await chatRes.json();
+  console.log('=== TOKEN USAGE ===', responseJson.usage);
+  return responseJson;
 }
 
 // ---------------------------------------------------------------------------
