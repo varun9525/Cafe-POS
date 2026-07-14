@@ -3,5 +3,5 @@ builder = "NIXPACKS"
 
 [deploy]
 startCommand = "node server.js"
-healthcheckPath = "/api/auth/login"
+healthcheckPath = "/api/tables"
 restartPolicyType = "ON_FAILURE"
